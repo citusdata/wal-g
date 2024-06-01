@@ -229,10 +229,10 @@ func ConfigureFolder(prefix string, settings map[string]string) (storage.Folder,
 	var containerClient *azblob.ContainerClient
 	if authType == AzureSASTokenAuth {
 		containerClient, err = getContainerClientWithSASToken(accountName, storageEndpointSuffix, containerName, timeout, accountToken)
-	} else if authType == AzureAccessKeyAuth {
-		containerClient, err = getContainerClientWithAccessKey(accountName, storageEndpointSuffix, containerName, timeout, credential)
 	} else if authType == AzureManagedIdentityAuth {
 		containerClient, err = getContainerClientWithManagedIndetity(accountName, storageEndpointSuffix, containerName, timeout, clientID)
+	} else if authType == AzureAccessKeyAuth {
+		containerClient, err = getContainerClientWithAccessKey(accountName, storageEndpointSuffix, containerName, timeout, credential)
 	} else {
 		// No explicitly configured auth method, try the default credential chain
 		containerClient, err = getContainerClient(accountName, storageEndpointSuffix, containerName, timeout)

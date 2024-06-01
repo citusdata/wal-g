@@ -6,9 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wal-g/wal-g/pkg/storages/storage"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-    "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-    "github.com/golang/mock/gomock"
 )
 
 func TestAzureFolder(t *testing.T) {
@@ -69,29 +66,4 @@ func TestGetContainerClientWithManagedIdentity(t *testing.T) {
 	containerClient, err := getContainerClientWithManagedIndetity(accountName, storageEndpointSuffix, containerName, timeout, clientID)
 	assert.NoError(t, err)
 	assert.NotNil(t, containerClient)
-}
-
-func TestGetContainerClientWithManagedIdentity2(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
-
-    mockCred := azidentity.NewMockManagedIdentityCredential(ctrl)
-    mockContainerClient := azblob.NewMockContainerClient(ctrl)
-
-    accountName := "testAccount"
-    storageEndpointSuffix := "core.windows.net"
-    containerName := "testContainer"
-    timeout := time.Second * 10
-    clientID := "testClientID"
-
-    mockCred.EXPECT().NewManagedIdentityCredential(gomock.Any()).Return(mockCred, nil)
-    mockContainerClient.EXPECT().NewContainerClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(mockContainerClient, nil)
-
-    containerClient, err := getContainerClientWithManagedIdentity(accountName, storageEndpointSuffix, containerName, timeout, clientID)
-    if err != nil {
-        t.Errorf("Unexpected error: %v", err)
-    }
-    if containerClient == nil {
-        t.Error("Expected ContainerClient, got nil")
-    }
 }
