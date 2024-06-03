@@ -40,8 +40,9 @@ const (
 type AzureAuthType string
 
 const (
-	AzureAccessKeyAuth AzureAuthType = "AzureAccessKeyAuth"
-	AzureSASTokenAuth  AzureAuthType = "AzureSASTokenAuth"
+	AzureAccessKeyAuth       AzureAuthType = "AzureAccessKeyAuth"
+	AzureSASTokenAuth        AzureAuthType = "AzureSASTokenAuth"
+	AzureManagedIdentityAuth AzureAuthType = "AzureManagedIdentityAuth"
 )
 
 var SettingList = []string{
