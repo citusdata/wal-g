@@ -217,17 +217,6 @@ func ConfigureFolder(prefix string, settings map[string]string) (storage.Folder,
 		containerClient, err = getContainerClient(accountName, storageEndpointSuffix, containerName, timeout)
 	}
 
-	// if authType == AzureSASTokenAuth {
-	// 	containerClient, err = getContainerClientWithToken(accountName, storageEndpointSuffix, containerName, timeout, accountToken)
-	// } else if authType == AzureManagedIdentityAuth {
-	// 	containerClient, err = getContainerClientWithToken(accountName, storageEndpointSuffix, containerName, timeout, accountToken)
-	// } else if authType == AzureAccessKeyAuth {
-	// 	containerClient, err = getContainerClientWithAccessKey(accountName, storageEndpointSuffix, containerName, timeout, credential)
-	// } else {
-	// 	// No explicitly configured auth method, try the default credential chain
-	// 	containerClient, err = getContainerClient(accountName, storageEndpointSuffix, containerName, timeout)
-	// }
-
 	if err != nil {
 		return nil, NewFolderError(err, "Unable to create service client")
 	}
