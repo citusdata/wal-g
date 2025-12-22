@@ -2,6 +2,7 @@ package azure
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wal-g/wal-g/pkg/storages/storage"
@@ -50,4 +51,30 @@ func TestConfigureManagedIdentityAuth(t *testing.T) {
 	assert.Equal(t, authType, AzureManagedIdentityAuth)
 	assert.Equal(t, accountToken, "foo")
 	assert.Empty(t, accessKey)
+}
+
+func TestConfigureManagedIdentityAuthWithClientID(t *testing.T) {
+	settings := map[string]string{ClientIDSetting: "client-id-123"}
+	authType, accountToken, accessKey := ConfigureAuthType(settings)
+	assert.Equal(t, AzureManagedIdentityAuth, authType)
+	assert.Empty(t, accountToken)
+	assert.Empty(t, accessKey)
+}
+
+func TestGetContainerClientWithManagedIdentity_RequiresOneSetting(t *testing.T) {
+	// Neither client ID nor MI token provided: should error
+	client, err := getContainerClientWithManagedIndetity(
+		"acct", "core.windows.net", "container", time.Minute, "", "",
+	)
+	assert.Error(t, err)
+	assert.Nil(t, client)
+}
+
+func TestGetContainerClientWithManagedIdentity_WithClientID(t *testing.T) {
+	// With client ID: should construct a client (no network calls involved)
+	client, err := getContainerClientWithManagedIndetity(
+		"acct", "core.windows.net", "container", time.Minute, "", "client-id-123",
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
 }

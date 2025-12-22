@@ -30,6 +30,7 @@ const (
 	MaxBuffersSetting = "AZURE_MAX_BUFFERS"
 	TryTimeoutSetting = "AZURE_TRY_TIMEOUT"
 	MiTokenSetting    = "AZURE_STORAGE_MI_TOKEN"
+	ClientIDSetting   = "AZURE_CLIENT_ID"
 	minBufferSize     = 1024
 	defaultBufferSize = 8 * 1024 * 1024
 	minBuffers        = 1
@@ -56,6 +57,7 @@ var SettingList = []string{
 	BufferSizeSetting,
 	MaxBuffersSetting,
 	MiTokenSetting,
+	ClientIDSetting,
 }
 
 func NewFolderError(err error, format string, args ...interface{}) storage.Error {
@@ -98,11 +100,29 @@ func getContainerClientWithManagedIndetity(
 	storageEndpointSuffix string,
 	containerName string,
 	timeout time.Duration,
-	accountToken string) (*azblob.ContainerClient, error) {
-	cred := &tokenCredential{token: accountToken}
+	accountToken string,
+	clientID string) (*azblob.ContainerClient, error) {
+	var cred azcore.TokenCredential
+	var err error
+	if clientID == "" && accountToken == "" {
+		return nil, NewFolderError(errors.New("Managed identity configuration missing"),
+			"Either %s or %s must be set", ClientIDSetting, MiTokenSetting)
+	}
+	// Prefer AZURE_CLIENT_ID if set, else fallback to raw AZURE_STORAGE_MI_TOKEN
+	if clientID != "" {
+		miCred, miErr := azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
+			ID: azidentity.ClientID(clientID),
+		})
+		if miErr != nil {
+			return nil, NewFolderError(miErr, "Unable to construct managed identity credential")
+		}
+		cred = miCred
+	} else if accountToken != "" {
+		cred = &tokenCredential{token: accountToken}
+	}
 
 	containerURLString := fmt.Sprintf("https://%s.blob.%s/%s", accountName, storageEndpointSuffix, containerName)
-	_, err := url.Parse(containerURLString)
+	_, err = url.Parse(containerURLString)
 	if err != nil {
 		return nil, NewFolderError(err, "Unable to parse service URL")
 	}
@@ -186,6 +206,9 @@ func configureAuthType(settings map[string]string) (AzureAuthType, string, strin
 		}
 	} else if accountToken, ok = settings[MiTokenSetting]; ok {
 		authType = AzureManagedIdentityAuth
+	} else if _, ok = settings[ClientIDSetting]; ok {
+		// Allow Managed Identity auth when client ID is provided without MI token
+		authType = AzureManagedIdentityAuth
 	}
 
 	return authType, accountToken, accessKey
@@ -199,6 +222,7 @@ func ConfigureFolder(prefix string, settings map[string]string) (storage.Folder,
 	}
 
 	authType, accountToken, accountKey := configureAuthType(settings)
+	clientID := settings[ClientIDSetting]
 
 	var credential *azblob.SharedKeyCredential
 	var err error
@@ -239,7 +263,7 @@ func ConfigureFolder(prefix string, settings map[string]string) (storage.Folder,
 	case AzureSASTokenAuth:
 		containerClient, err = getContainerClientWithSASToken(accountName, storageEndpointSuffix, containerName, timeout, accountToken)
 	case AzureManagedIdentityAuth:
-		containerClient, err = getContainerClientWithManagedIndetity(accountName, storageEndpointSuffix, containerName, timeout, accountToken)
+		containerClient, err = getContainerClientWithManagedIndetity(accountName, storageEndpointSuffix, containerName, timeout, accountToken, clientID)
 	case AzureAccessKeyAuth:
 		containerClient, err = getContainerClientWithAccessKey(accountName, storageEndpointSuffix, containerName, timeout, credential)
 	default:
